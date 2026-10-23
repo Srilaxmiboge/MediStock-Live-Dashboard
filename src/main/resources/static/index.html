@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MediStock | Pharmacy Operations</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        :root {
+            --ink: #18312d;
+            --muted: #65736e;
+            --paper: #f3f6f2;
+            --line: #dce4dd;
+            --green: #176b52;
+            --lime: #d9ed7b;
+            --coral: #c44f3c;
+            --blue: #356a91;
+        }
+        body { background: var(--paper); color: var(--ink); font-family: "Aptos", "Trebuchet MS", sans-serif; }
+        .topbar { background: var(--ink); color: white; }
+        .brand-mark { display: inline-grid; place-items: center; width: 34px; height: 34px; background: var(--lime); color: var(--ink); font-weight: 800; border-radius: 8px; }
+        .brand-name { font-size: 1.15rem; font-weight: 750; letter-spacing: 0; }
+        .subtle { color: var(--muted); }
+        .page-wrap { max-width: 1440px; }
+        .metric { min-height: 112px; border: 1px solid var(--line); border-radius: 6px; background: #fff; padding: 18px 20px; }
+        .metric-label { color: var(--muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; }
+        .metric-value { font-size: 1.7rem; font-weight: 750; line-height: 1.2; margin-top: 10px; }
+        .metric-stock { border-top: 4px solid var(--green); }
+        .metric-expiry { border-top: 4px solid #d09a2e; }
+        .metric-low { border-top: 4px solid var(--coral); }
+        .metric-value-total { border-top: 4px solid var(--blue); }
+        .section-heading { font-size: 1.1rem; font-weight: 750; margin: 0; }
+        .workflow-tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        .workflow-tab { border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); padding: 12px 16px 10px; font-weight: 650; }
+        .workflow-tab:hover, .workflow-tab.active { color: var(--green); }
+        .workflow-tab.active { border-bottom-color: var(--green); }
+        .panel { background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+        .page-view { display: none; }
+        .page-view.active { display: block; }
+        .form-label { color: #43534d; font-size: .84rem; font-weight: 650; }
+        .form-control, .form-select { border-color: #cbd6ce; border-radius: 5px; min-height: 42px; }
+        .form-control:focus, .form-select:focus { border-color: var(--green); box-shadow: 0 0 0 .2rem rgba(23,107,82,.12); }
+        .btn-primary { background: var(--green); border-color: var(--green); }
+        .btn-primary:hover { background: #10563f; border-color: #10563f; }
+        .btn-outline-primary { color: var(--green); border-color: var(--green); }
+        .btn-outline-primary:hover { background: var(--green); border-color: var(--green); }
+        .table { --bs-table-bg: transparent; }
+        .table thead th { color: var(--muted); font-size: .75rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; border-bottom-color: var(--line); }
+        .table td { vertical-align: middle; }
+        .badge-soft { background: #e6f2ec; color: #176b52; }
+        .badge-warning-soft { background: #fff1cf; color: #805900; }
+        .badge-danger-soft { background: #fbe8e4; color: #a43829; }
+        .sale-line { display: grid; grid-template-columns: minmax(180px, 1fr) 130px auto; gap: 10px; align-items: end; margin-bottom: 10px; }
+        .alert-group { border-left: 4px solid var(--coral); padding: 2px 0 2px 14px; }
+        .alert-group.warning { border-color: #d09a2e; }
+        .alert-group.info { border-color: var(--blue); }
+        #receiptPrint { max-width: 800px; }
+        @media (max-width: 650px) {
+            .workflow-tab { padding-inline: 12px; }
+            .sale-line { grid-template-columns: 1fr 105px auto; }
+            .metric { min-height: 96px; padding: 14px; }
+            .metric-value { font-size: 1.4rem; }
+        }
+        @media print {
+            body * { visibility: hidden !important; }
+            #receiptPrint, #receiptPrint * { visibility: visible !important; }
+            #receiptPrint { display: block !important; position: absolute; inset: 0; max-width: none; padding: 24px; }
+            #receiptPrint .no-print { display: none !important; }
+        }
+
+
+        /* Premium MediStock workspace */
+        :root { --ink:#10244b; --muted:#60749c; --paper:#f3f7fd; --line:#dbe7fb; --green:#087f68; --lime:#d8f27a; --coral:#d95f55; --blue:#286bff; }
+        body { background:linear-gradient(135deg,#f4f8ff 0%,#f8fbff 55%,#eff6ff 100%); color:#10244b; font-family:Inter,"Segoe UI",Arial,sans-serif; font-size:14px; }
+        body.dashboard-mode .container-fluid.page-wrap > .d-flex:first-child, body.dashboard-mode .container-fluid.page-wrap > #statusMessage, body.dashboard-mode .container-fluid.page-wrap > section[aria-label="Inventory summary"], body.dashboard-mode .workflow-tabs { display:none!important; }
+        body.dashboard-mode .topbar .container-fluid.page-wrap > .d-flex:first-child { display:flex!important; }
+        .app-sidebar { position:fixed; inset:0 auto 0 0; z-index:1035; width:286px; background:linear-gradient(180deg,#102142 0%,#071831 100%); color:#dbe7e2; padding:27px 17px 18px; display:flex; flex-direction:column; box-shadow:8px 0 30px rgba(15,40,34,.06); }
+        .sidebar-brand { display:flex; align-items:center; gap:11px; padding:0 9px 34px; color:#fff; text-decoration:none; }
+        .sidebar-brand strong { display:block; font-size:20px; letter-spacing:-.6px; }
+        .sidebar-brand small { display:block; margin-top:3px; color:#8fa9a0; font-size:9px; letter-spacing:1.8px; font-weight:800; }
+        .brand-mark { border-radius:11px; width:42px; height:42px; background:linear-gradient(135deg,#65a8ff,#2465ff); color:white; font-size:23px; box-shadow:0 6px 16px #286bff35; }
+        .sidebar-label { color:#819a91; font-size:10px; font-weight:800; letter-spacing:1.7px; padding:0 12px 12px; }
+        .sidebar-nav { display:grid; gap:6px; }
+        .side-link { border:0; border-radius:10px; width:100%; display:flex; align-items:center; gap:13px; padding:13px 12px; background:transparent; color:#b6c9c2; text-align:left; font-weight:600; transition:.18s ease; }
+        .side-link:hover { color:#fff; background:#172f5b; }
+        .side-link.active { color:#fff; background:linear-gradient(100deg,#214b9c,#1b3b7a); box-shadow:0 5px 16px #06142b55; }
+        .side-icon { display:inline-grid; place-items:center; width:22px; font-size:21px; color:#b4c8ea; }
+        .side-link.active .side-icon { color:#fff; }
+        .sidebar-bottom { margin-top:auto; border-top:1px solid #263b60; padding:18px 8px 2px; display:flex; align-items:flex-start; gap:10px; }
+        .sidebar-bottom strong { display:block; font-size:12px; color:#dce9e3; }
+        .sidebar-bottom small { display:block; font-size:10px; color:#8fa9a0; margin-top:4px; }
+        .secure-dot { width:8px; height:8px; margin-top:4px; border-radius:50%; background:#a9dc72; box-shadow:0 0 0 4px #28453b; }
+        .topbar { margin-left:286px; background:rgba(255,255,255,.86); color:var(--ink); border-bottom:1px solid var(--line); box-shadow:0 2px 12px #23416a08; }
+        .topbar .container-fluid { min-height:70px; padding-top:14px!important; padding-bottom:14px!important; }
+        .topbar .brand-mark, .topbar .brand-name, .topbar .small { display:none!important; }
+        .topbar .btn-outline-light { color:#445b54; border-color:#dce5e0; border-radius:9px; padding:8px 14px; }
+        .page-wrap { max-width:none; }
+        body > .container-fluid.page-wrap { margin-left:286px; width:calc(100% - 286px); padding:26px 28px!important; }
+        body > .container-fluid.page-wrap > .d-flex:first-child { margin-bottom:27px!important; }
+        h1.h3 { font-size:29px; letter-spacing:-.9px; font-weight:800!important; color:#10244b; }
+        .subtle { color:#7c8985; }
+        .metric { min-height:132px; padding:22px; border:1px solid #dbe7fb; border-radius:15px; box-shadow:0 5px 18px rgba(38,91,170,.05); position:relative; overflow:hidden; background:linear-gradient(135deg,#fff,#eef5ff); }
+        .metric:after { content:""; position:absolute; right:-18px; top:-22px; width:84px; height:84px; border-radius:50%; background:rgba(64,127,255,.07); }
+        .metric-stock,.metric-expiry,.metric-low,.metric-value-total { border-top:0; }
+        .metric-label { text-transform:none; letter-spacing:.1px; font-size:12px; font-weight:700; color:#536b99; }
+        .metric-value { margin-top:16px; font-size:30px; letter-spacing:-.8px; color:#10244b; }
+        .workflow-tabs { display:none!important; }
+        .panel { border:1px solid #dbe7fb; border-radius:15px; box-shadow:0 5px 20px rgba(37,85,160,.045); overflow:hidden; }
+        .panel.p-3 { padding:24px!important; }
+        .section-heading { font-size:16px; letter-spacing:-.2px; color:#10244b; }
+        .form-label { font-size:12px; color:#5e7068; font-weight:700; }
+        .form-control,.form-select { border-color:#dce5df; border-radius:9px; min-height:43px; background-color:#fbfcfb; }
+        .form-control:focus,.form-select:focus { border-color:#4c9a80; box-shadow:0 0 0 .2rem rgba(23,107,88,.10); }
+        .btn { border-radius:9px; font-weight:650; padding:10px 15px; }
+        .btn-primary { background:#286bff; border-color:#286bff; box-shadow:0 4px 10px rgba(40,107,255,.16); }
+        .btn-primary:hover { background:#1b55d6; border-color:#1b55d6; }
+        .table { margin-top:5px; }
+        .table thead th { padding:14px 12px; background:#f2f7ff; border-bottom:1px solid #dbe7fb; color:#526b9b; font-size:10px; letter-spacing:.7px; }
+        .table td { padding:15px 12px; border-bottom-color:#e7eefb; color:#263f70; }
+        .badge-soft,.badge-warning-soft,.badge-danger-soft { border-radius:20px; padding:6px 9px; }
+        .page-view { animation:fadeIn .22s ease; }
+        @keyframes fadeIn { from {opacity:.65; transform:translateY(3px)} to {opacity:1; transform:none} }
+        .mobile-menu { display:none; }
+        #statusMessage { border-radius:10px; }
+        @media(max-width:900px) {
+          .app-sidebar { width:240px; }
+          .topbar { margin-left:240px; }
+          body > .container-fluid.page-wrap { margin-left:240px; width:calc(100% - 240px); padding:24px 20px!important; }
+        }
+        @media(max-width:700px) {
+          .app-sidebar { transform:translateX(-100%); transition:transform .2s ease; width:260px; }
+          .app-sidebar.open { transform:translateX(0); }
+          .mobile-menu { display:block; position:fixed; z-index:1040; top:17px; left:14px; border:1px solid #dce5df; border-radius:9px; background:#fff; color:#18312d; width:38px; height:38px; }
+          .topbar { margin-left:0; }
+          .topbar .container-fluid { padding-left:62px!important; }
+          body > .container-fluid.page-wrap { margin-left:0; width:100%; padding:22px 14px!important; }
+          h1.h3 { font-size:24px; }
+          .metric { min-height:108px; padding:16px; }
+          .metric-value { font-size:24px; margin-top:12px; }
+          .panel.p-3 { padding:17px!important; }
+        }
+        @media print {
+          .app-sidebar,.mobile-menu,.topbar { display:none!important; }
+          body > .container-fluid.page-wrap { margin:0!important; width:100%!important; }
+        }
+
+        /* Live-data additions (same visual language as above) */
+        .side-badge { margin-left:auto; background:#d95f55; color:#fff; border-radius:10px; font-size:11px; font-weight:700; padding:1px 7px; line-height:1.5; }
+        .bell-btn { border:0; background:transparent; color:#173c7a; position:relative; padding:4px; line-height:0; border-radius:8px; }
+        .bell-btn:hover { background:#eef4ff; }
+        .bell-badge { position:absolute; top:-3px; right:-5px; min-width:17px; height:17px; padding:0 4px; border-radius:9px; background:#d95f55; color:#fff; font-size:10px; font-weight:700; display:grid; place-items:center; line-height:1; }
+        .bell-menu { position:absolute; right:0; top:calc(100% + 12px); width:340px; max-width:calc(100vw - 24px); background:#fff; border:1px solid #d5e2f8; border-radius:12px; box-shadow:0 12px 32px #23416a26; z-index:2000; color:#173c7a; overflow:hidden; }
+        .bell-head { padding:12px 14px; font-weight:700; font-size:13px; }
+        .bell-item { display:flex; gap:10px; padding:10px 14px; border-top:1px solid #eef3fc; cursor:pointer; font-size:13px; }
+        .bell-item:hover { background:#eef4ff; }
+        .bell-foot { padding:10px 14px; border-top:1px solid #eef3fc; font-size:13px; font-weight:600; cursor:pointer; color:#286bff; text-align:center; }
+        .dot { width:9px; height:9px; border-radius:50%; margin-top:5px; flex:none; display:inline-block; }
+        .dot-expired { background:#d95f55; } .dot-expiring { background:#e6a23c; } .dot-low { background:#286bff; }
+        .alert-mini { display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-top:1px solid #eef3fc; font-size:13px; }
+        .alert-mini:first-child { border-top:0; }
+        .activity-scroll { max-height:430px; overflow:auto; }
+        .chart-empty { fill:#7c8fb5; font-size:12px; }
+        .metric-sm .metric-value { font-size:24px; }
+        .kv { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-top:1px solid #eef3fc; font-size:13px; }
+        .kv:first-child { border-top:0; }
+        .conn-dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:#2fb67c; margin-right:6px; }
+        .conn-dot.off { background:#d95f55; }
+        .scroll-box { max-height:360px; overflow:auto; }
+        @media print { .no-print-report { display:none!important; } }
+    </style>
+</head>
+<body class="dashboard-mode">
+    <aside class="app-sidebar" id="appSidebar">
+        <a class="sidebar-brand" href="/" aria-label="MediStock home"><span class="brand-mark">✚</span><span><strong style="font-size:23px">Medi<span style="color:#75aaff">Stock</span></strong><small style="letter-spacing:0;font-size:10px;color:#bdcce5">Better Stock. Healthier Tomorrow.</small></span></a>
+        <div class="sidebar-label">WORKSPACE</div>
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            <button type="button" class="side-link active" data-view="dashboard"><span class="side-icon">◆</span><span>Dashboard</span></button>
+            <button type="button" class="side-link" data-view="inventory"><span class="side-icon">⬡</span><span>Inventory</span></button>
+            <button type="button" class="side-link" data-view="purchases"><span class="side-icon">↙</span><span>Purchases</span></button>
+            <button type="button" class="side-link" data-view="sales"><span class="side-icon">▤</span><span>Sales &amp; bills</span></button>
+            <button type="button" class="side-link" data-view="suppliers"><span class="side-icon">♙</span><span>Suppliers</span></button>
+            <button type="button" class="side-link" data-view="alerts"><span class="side-icon">△</span><span>Alerts</span><span class="side-badge d-none" id="sideAlertBadge">0</span></button>
+            <button type="button" class="side-link" data-view="reports"><span class="side-icon">▥</span><span>Reports</span></button>
+            <button type="button" class="side-link" data-view="settings"><span class="side-icon">⚙</span><span>Settings</span></button>
+        </nav>
+        <div class="sidebar-bottom"><div class="brand-mark" id="sideAvatar" style="width:38px;height:38px;border-radius:50%;font-size:13px"></div><div style="min-width:0"><strong id="sideName"></strong><small id="sideSub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></small></div></div>
+    </aside>
+    <button type="button" class="mobile-menu" id="mobileMenu" aria-label="Toggle navigation">☰</button>
+    <header class="topbar">
+        <div class="container-fluid page-wrap px-3 px-lg-4 py-3 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <span class="brand-mark">M</span>
+                <span class="brand-name">MediStock</span>
+                <div id="globalSearchBox" class="d-none d-md-flex align-items-center gap-2" style="position:relative;width:min(60vw,800px);border:1px solid #d5e2f8;border-radius:12px;background:#fff;padding:10px 16px;color:#6c7fa6">⌕ <input id="globalSearch" type="search" autocomplete="off" placeholder="Search medicines, suppliers, bills..." aria-label="Search medicines, suppliers, bills" style="flex:1;min-width:0;border:0;outline:0;background:transparent;color:inherit;font:inherit;padding:0"><span class="ms-auto small border rounded px-2 py-1">Ctrl + K</span><div id="searchResults" class="d-none" style="position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:2000;background:#fff;border:1px solid #d5e2f8;border-radius:12px;box-shadow:0 12px 32px #23416a26;max-height:420px;overflow:auto;color:#173c7a"></div></div>
+            </div>
+            <div class="d-flex align-items-center gap-3"><div id="bellWrap" style="position:relative"><button type="button" id="bellBtn" class="bell-btn" aria-label="Notifications" aria-haspopup="true" aria-expanded="false"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bell-badge d-none" id="bellBadge">0</span></button><div id="bellMenu" class="bell-menu d-none" role="menu"></div></div><span id="topAvatar" class="rounded-circle d-inline-grid text-white fw-bold" style="place-items:center;width:38px;height:38px;background:#17366c"></span><span class="fw-semibold" id="topName"></span><a href="/logout" class="btn btn-sm btn-outline-light">Sign out</a></div>
+        </div>
+    </header>
+
+    <div class="container-fluid page-wrap px-3 px-lg-4 py-4">
+        <div class="d-flex align-items-start align-items-md-center justify-content-between gap-3 mb-4">
+            <div>
+                <h1 class="h3 mb-1 fw-bold" id="pageTitle">Operations</h1>
+                <div class="subtle" id="pageSubtitle">Inventory, purchasing and point of sale</div>
+            </div>
+            <div class="text-end small subtle"><span id="todayLabel"></span><br><span id="lastUpdated"></span></div>
+        </div>
+
+        <div id="statusMessage" class="alert d-none" role="alert" aria-live="polite"></div>
+
+        <section class="row g-3 mb-4" aria-label="Inventory summary">
+            <div class="col-6 col-xl-3"><div class="metric metric-stock"><div class="metric-label">Medicine lots</div><div class="metric-value" id="metricLots">--</div></div></div>
+            <div class="col-6 col-xl-3"><div class="metric metric-expiry"><div class="metric-label">Expiring soon</div><div class="metric-value" id="metricExpiring">--</div></div></div>
+            <div class="col-6 col-xl-3"><div class="metric metric-low"><div class="metric-label">Low stock</div><div class="metric-value" id="metricLow">--</div></div></div>
+            <div class="col-6 col-xl-3"><div class="metric metric-value-total"><div class="metric-label">Retail stock value</div><div class="metric-value" id="metricValue">--</div></div></div>
+        </section>
+
+        <nav class="workflow-tabs mb-4" aria-label="Pharmacy workflows">
+            <button class="workflow-tab" type="button" data-view="dashboard">Dashboard</button>
+            <button class="workflow-tab" type="button" data-view="inventory">Inventory</button>
+            <button class="workflow-tab" type="button" data-view="purchases">Purchases</button>
+            <button class="workflow-tab" type="button" data-view="sales">Sales &amp; bills</button>
+            <button class="workflow-tab" type="button" data-view="suppliers">Suppliers</button>
+            <button class="workflow-tab" type="button" data-view="alerts">Alerts</button>
+        </nav>
+
+        <main>
+            <section class="page-view active" id="view-dashboard">
+                <div class="d-flex align-items-start justify-content-between gap-3 mb-4"><div><h1 class="h3 mb-1" id="greetingTitle">Welcome 👋</h1><div class="subtle">Here's what's happening with your pharmacy today.</div></div><div class="text-end small subtle rounded-3 border bg-white px-3 py-2">▣ <strong id="dashboardDate" style="color:#10244b"></strong><br><span>Last updated: <span id="dashboardClock"></span></span></div></div>
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-xl-3"><div class="metric" style="background:linear-gradient(135deg,#eff6ff,#e3efff);border-color:#cfe1ff"><div class="metric-label">Medicine Lots</div><div class="metric-value" id="dashLots">--</div><div class="small fw-semibold mt-2" style="color:#078b68" id="dashLotsSub">&nbsp;</div></div></div>
+                    <div class="col-6 col-xl-3"><div class="metric" style="background:linear-gradient(135deg,#fff8f1,#fff0e6);border-color:#ffe2cf"><div class="metric-label">Expiring Soon</div><div class="metric-value" id="dashExpiring">--</div><div class="small fw-semibold mt-2" style="color:#f05b27" id="dashExpiringSub">&nbsp;</div></div></div>
+                    <div class="col-6 col-xl-3"><div class="metric" style="background:linear-gradient(135deg,#f7f1ff,#eee6ff);border-color:#e1d2ff"><div class="metric-label">Low Stock</div><div class="metric-value" id="dashLow">--</div><div class="small fw-semibold mt-2" style="color:#7852db" id="dashLowSub">&nbsp;</div></div></div>
+                    <div class="col-6 col-xl-3"><div class="metric" style="background:linear-gradient(135deg,#eafff7,#d9f8ed);border-color:#c5f0e2"><div class="metric-label">Retail Stock Value</div><div class="metric-value" id="dashValue">--</div><div class="small fw-semibold mt-2" style="color:#078b68" id="dashValueSub">&nbsp;</div></div></div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12 col-xl-5"><div class="panel p-3 p-lg-4 h-100"><div class="d-flex justify-content-between align-items-start"><div><h2 class="section-heading mb-1">Sales Overview</h2><div class="small subtle" id="salesRange">Last 7 days</div></div><select id="salesMetric" class="form-select" aria-label="Chart metric" style="width:auto;min-height:0;padding:8px 34px 8px 14px;font-size:.875em;border-radius:.5rem"><option value="revenue">Sales</option><option value="bills">Bills</option><option value="units">Units sold</option></select></div><div class="mt-3" id="salesChart"></div></div></div>
+                    <div class="col-12 col-xl-4"><div class="panel p-3 p-lg-4 h-100"><h2 class="section-heading mb-3">Inventory by Category</h2><div class="d-flex align-items-center justify-content-center gap-3 flex-wrap py-3"><div id="categoryDonut" style="width:155px;height:155px;border-radius:50%;background:#e8eefb;display:grid;place-items:center"><div style="background:white;border-radius:50%;width:88px;height:88px;display:grid;place-content:center;text-align:center"><strong id="dashDonutTotal" style="font-size:27px;color:#10244b">--</strong><small class="subtle">Total Lots</small></div></div><div class="small d-grid gap-2" id="categoryLegend"></div></div></div></div>
+                    <div class="col-12 col-xl-3"><div class="panel p-3 h-100"><h2 class="section-heading mb-3">Quick Actions</h2><button class="btn w-100 text-white text-start mb-2" style="background:linear-gradient(100deg,#347cff,#1763f6)" onclick="switchView('inventory')">＋ Add Medicine Lot <small class="d-block ms-4">Add new medicine to inventory</small></button><button class="btn w-100 text-white text-start mb-2" style="background:linear-gradient(100deg,#20b997,#0ba98d)" onclick="switchView('purchases')">🛒 Record Purchase <small class="d-block ms-4">Add stock from supplier</small></button><button class="btn w-100 text-white text-start mb-2" style="background:linear-gradient(100deg,#9661f6,#7843e9)" onclick="switchView('sales')">▤ Create Sales Bill <small class="d-block ms-4">Sell medicine to customer</small></button><button class="btn w-100 text-white text-start" style="background:linear-gradient(100deg,#ff9e24,#ff8a00)" onclick="switchView('suppliers')">♙ Add Supplier <small class="d-block ms-4">Register new supplier</small></button></div></div>
+                    <div class="col-12 col-xl-9"><div class="panel p-3 p-lg-4"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="section-heading">Recent Activity</h2><button class="btn btn-sm btn-outline-primary" id="activityToggle" type="button">View all →</button></div><div class="table-responsive" id="activityScroll"><table class="table table-hover mb-0"><thead><tr><th>Date &amp; Time</th><th>Type</th><th>Details</th><th>User</th></tr></thead><tbody id="activityBody"><tr><td colspan="4" class="text-center subtle py-4">Loading…</td></tr></tbody></table></div></div></div>
+                    <div class="col-12 col-xl-3"><div class="panel p-3 h-100"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="section-heading">Active Alerts</h2><button class="btn btn-sm btn-link" onclick="switchView('alerts')">View all →</button></div><div id="dashAlerts"><p class="small subtle">Loading…</p></div><button class="btn btn-outline-primary w-100 mt-2" onclick="switchView('alerts')">Review alerts →</button></div></div>
+                </div>
+            </section>
+            <section class="page-view" id="view-reports">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                    <div><h2 class="section-heading">Sales &amp; stock report</h2><div class="small subtle mt-1" id="reportRangeLabel"></div></div>
+                    <div class="d-flex flex-wrap gap-2 align-items-end no-print-report">
+                        <div><label class="form-label mb-1" for="reportPreset">Period</label><select class="form-select" id="reportPreset" style="width:auto"><option value="today">Today</option><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="month">This month</option><option value="lastmonth">Last month</option><option value="custom">Custom range</option></select></div>
+                        <div><label class="form-label mb-1" for="reportFrom">From</label><input class="form-control" id="reportFrom" type="date" style="width:auto"></div>
+                        <div><label class="form-label mb-1" for="reportTo">To</label><input class="form-control" id="reportTo" type="date" style="width:auto"></div>
+                        <button class="btn btn-primary" id="reportRun" type="button">Run report</button>
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-xl-4"><div class="metric metric-sm"><div class="metric-label">Sales revenue</div><div class="metric-value" id="repRevenue">--</div></div></div>
+                    <div class="col-6 col-xl-4"><div class="metric metric-sm"><div class="metric-label">Bills issued</div><div class="metric-value" id="repBills">--</div></div></div>
+                    <div class="col-6 col-xl-4"><div class="metric metric-sm"><div class="metric-label">Units sold</div><div class="metric-value" id="repUnits">--</div></div></div>
+                    <div class="col-6 col-xl-4"><div class="metric metric-sm"><div class="metric-label">Average bill</div><div class="metric-value" id="repAverage">--</div></div></div>
+                    <div class="col-6 col-xl-4"><div class="metric metric-sm"><div class="metric-label">Purchase spend</div><div class="metric-value" id="repSpend">--</div></div></div>
+                    <div class="col-6 col-xl-4"><div class="metric metric-sm"><div class="metric-label">Units purchased</div><div class="metric-value" id="repPurchased">--</div></div></div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-xl-7"><div class="panel p-3 p-lg-4 h-100"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="section-heading">Sales by day</h2><button class="btn btn-sm btn-outline-primary no-print-report" id="exportDaily" type="button">Export CSV</button></div><div class="table-responsive scroll-box"><table class="table table-hover mb-0"><thead><tr><th>Date</th><th>Bills</th><th>Units</th><th class="text-end">Revenue</th></tr></thead><tbody id="repDailyBody"></tbody></table></div></div></div>
+                    <div class="col-12 col-xl-5"><div class="panel p-3 p-lg-4 h-100"><h2 class="section-heading mb-3">Top-selling medicines</h2><div class="table-responsive scroll-box"><table class="table table-hover mb-0"><thead><tr><th>Medicine</th><th>Units</th><th class="text-end">Revenue</th></tr></thead><tbody id="repTopBody"></tbody></table></div></div></div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-xl-5"><div class="panel p-3 p-lg-4 h-100"><h2 class="section-heading mb-3">Purchases by supplier</h2><div class="table-responsive scroll-box"><table class="table table-hover mb-0"><thead><tr><th>Supplier</th><th>Orders</th><th>Units</th><th class="text-end">Spend</th></tr></thead><tbody id="repSupplierBody"></tbody></table></div></div></div>
+                    <div class="col-12 col-xl-7"><div class="panel p-3 p-lg-4 h-100"><div class="d-flex justify-content-between align-items-center mb-3"><div><h2 class="section-heading">Stock on hand by category</h2><div class="small subtle mt-1">As of today, regardless of the period above</div></div><button class="btn btn-sm btn-outline-primary no-print-report" id="exportInventory" type="button">Export CSV</button></div><div class="table-responsive scroll-box"><table class="table table-hover mb-0"><thead><tr><th>Category</th><th>Lots</th><th>Units</th><th class="text-end">Retail value</th></tr></thead><tbody id="repCategoryBody"></tbody></table></div></div></div>
+                </div>
+                <div class="panel p-3 p-lg-4 mb-3"><h2 class="section-heading mb-3">Stock health today</h2><div class="row g-3" id="repHealth"></div></div>
+                <div class="no-print-report"><button class="btn btn-outline-primary" type="button" onclick="window.print()">Print report</button></div>
+            </section>
+            <section class="page-view" id="view-settings">
+                <div class="row g-3">
+                    <div class="col-12 col-xl-6"><div class="panel p-3 p-lg-4 h-100"><h2 class="section-heading mb-1">Your profile</h2><div class="small subtle mb-3">Shown in the sidebar and top bar, and recorded against your actions in Recent Activity.</div>
+                        <form id="profileForm" class="row g-3">
+                            <div class="col-12 col-md-6"><label class="form-label" for="profileFullName">Full name</label><input class="form-control" id="profileFullName" maxlength="120" placeholder="e.g. Priya Sharma"></div>
+                            <div class="col-12 col-md-6"><label class="form-label" for="profileEmail">Email</label><input class="form-control" id="profileEmail" type="email" maxlength="160" placeholder="you@pharmacy.com"></div>
+                            <div class="col-12 col-md-6"><label class="form-label" for="profileUsername">Username</label><input class="form-control" id="profileUsername" readonly></div>
+                            <div class="col-12 col-md-6"><label class="form-label" for="profileRole">Role</label><input class="form-control" id="profileRole" readonly></div>
+                            <div class="col-12"><button class="btn btn-primary" type="submit">Save profile</button></div>
+                        </form></div></div>
+                    <div class="col-12 col-xl-6"><div class="panel p-3 p-lg-4 h-100"><h2 class="section-heading mb-1">Change password</h2><div class="small subtle mb-3">Use at least 8 characters.</div>
+                        <form id="passwordForm" class="row g-3">
+                            <div class="col-12"><label class="form-label" for="currentPassword">Current password</label><input class="form-control" id="currentPassword" type="password" autocomplete="current-password" required></div>
+                            <div class="col-12 col-md-6"><label class="form-label" for="newPassword">New password</label><input class="form-control" id="newPassword" type="password" autocomplete="new-password" minlength="8" required></div>
+                            <div class="col-12 col-md-6"><label class="form-label" for="confirmPassword">Confirm new password</label><input class="form-control" id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></div>
+                            <div class="col-12"><button class="btn btn-primary" type="submit">Update password</button></div>
+                        </form></div></div>
+                    <div class="col-12 col-xl-7"><div class="panel p-3 p-lg-4 h-100"><h2 class="section-heading mb-1">Pharmacy &amp; alert settings</h2><div class="small subtle mb-3" id="settingsNote">These apply to bills, alerts, the dashboard and reports.</div>
+                        <form id="settingsForm" class="row g-3">
+                            <div class="col-12 col-md-6"><label class="form-label" for="setName">Pharmacy name</label><input class="form-control" id="setName" maxlength="120" required></div>
+                            <div class="col-12 col-md-6"><label class="form-label" for="setPhone">Phone</label><input class="form-control" id="setPhone" maxlength="40"></div>
+                            <div class="col-12"><label class="form-label" for="setAddress">Address <span class="subtle fw-normal">printed on bills</span></label><input class="form-control" id="setAddress" maxlength="240"></div>
+                            <div class="col-12 col-md-6"><label class="form-label" for="setExpiryDays">Near-expiry window (days)</label><input class="form-control" id="setExpiryDays" type="number" min="1" max="365" step="1" required></div>
+                            <div class="col-12 col-md-6"><label class="form-label" for="setLowStock">Low-stock threshold (units)</label><input class="form-control" id="setLowStock" type="number" min="0" max="100000" step="1" required></div>
+                            <div class="col-12"><button class="btn btn-primary" id="settingsSave" type="submit">Save settings</button></div>
+                        </form></div></div>
+                    <div class="col-12 col-xl-5"><div class="panel p-3 p-lg-4 h-100"><h2 class="section-heading mb-3">System</h2><div id="systemInfo"><div class="small subtle">Loading…</div></div></div></div>
+                </div>
+            </section>
+
+            <section class="page-view" id="view-inventory">
+                <div class="panel p-3 p-lg-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div><h2 class="section-heading">Add medicine lot</h2><div class="small subtle mt-1">Expiry is tracked per lot.</div></div>
+                    </div>
+                    <form id="medicineForm" class="row g-3">
+                        <div class="col-12 col-md-4"><label class="form-label" for="medicineName">Medicine</label><input class="form-control" id="medicineName" required maxlength="120"></div>
+                        <div class="col-6 col-md-2"><label class="form-label" for="medicineCategory">Category</label><input class="form-control" id="medicineCategory" required maxlength="80"></div>
+                        <div class="col-6 col-md-2"><label class="form-label" for="medicineQuantity">Opening stock</label><input class="form-control" id="medicineQuantity" type="number" min="0" step="1" required></div>
+                        <div class="col-6 col-md-2"><label class="form-label" for="medicinePrice">Retail price</label><input class="form-control" id="medicinePrice" type="number" min="0" step="0.01" required></div>
+                        <div class="col-6 col-md-2"><label class="form-label" for="medicineExpiry">Expiry date</label><input class="form-control" id="medicineExpiry" type="date" required></div>
+                        <div class="col-12"><button class="btn btn-primary" type="submit">Add lot to inventory</button></div>
+                    </form>
+                </div>
+                <div class="panel p-3 p-lg-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="section-heading">Current inventory</h2><span id="inventoryCount" class="small subtle"></span></div>
+                    <div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Medicine</th><th>Category</th><th>On hand</th><th>Retail price</th><th>Expiry</th><th>Status</th><th></th></tr></thead><tbody id="medicineTableBody"></tbody></table></div>
+                </div>
+            </section>
+
+            <section class="page-view" id="view-purchases">
+                <div class="panel p-3 p-lg-4 mb-4">
+                    <h2 class="section-heading mb-3">Record a purchase</h2>
+                    <form id="purchaseForm" class="row g-3">
+                        <div class="col-12 col-md-3"><label class="form-label" for="purchaseSupplier">Supplier</label><select class="form-select" id="purchaseSupplier" required></select></div>
+                        <div class="col-12 col-md-3"><label class="form-label" for="purchaseMedicine">Expiry-dated lot</label><select class="form-select" id="purchaseMedicine" required></select></div>
+                        <div class="col-6 col-md-2"><label class="form-label" for="purchaseQuantity">Quantity received</label><input class="form-control" id="purchaseQuantity" type="number" min="1" step="1" required></div>
+                        <div class="col-6 col-md-2"><label class="form-label" for="purchaseCost">Unit cost</label><input class="form-control" id="purchaseCost" type="number" min="0" step="0.01" required></div>
+                        <div class="col-12 col-md-2"><label class="form-label" for="purchaseDate">Purchase date</label><input class="form-control" id="purchaseDate" type="date" required></div>
+                        <div class="col-12"><button class="btn btn-primary" type="submit">Record purchase and add stock</button></div>
+                    </form>
+                </div>
+                <div class="panel p-3 p-lg-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="section-heading">Purchase register</h2><span class="small subtle">Latest 100 entries</span></div>
+                    <div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Date</th><th>Supplier</th><th>Medicine lot</th><th>Units</th><th>Unit cost</th><th>Total</th></tr></thead><tbody id="purchaseTableBody"></tbody></table></div>
+                </div>
+            </section>
+
+            <section class="page-view" id="view-sales">
+                <div class="panel p-3 p-lg-4 mb-4">
+                    <h2 class="section-heading mb-3">Create sale</h2>
+                    <form id="saleForm">
+                        <div class="row g-3 mb-3"><div class="col-12 col-md-5"><label class="form-label" for="customerName">Customer name <span class="subtle fw-normal">optional</span></label><input class="form-control" id="customerName" maxlength="120"></div></div>
+                        <div class="d-flex justify-content-between align-items-center mb-2"><span class="form-label mb-0">Items</span><button class="btn btn-sm btn-outline-primary" id="addSaleLine" type="button">Add item</button></div>
+                        <div id="saleLines"></div>
+                        <button class="btn btn-primary mt-2" type="submit">Complete sale and create bill</button>
+                    </form>
+                </div>
+                <div class="panel p-3 p-lg-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="section-heading">Sales register</h2><span class="small subtle">Latest 100 bills</span></div>
+                    <div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Total</th><th></th></tr></thead><tbody id="salesTableBody"></tbody></table></div>
+                </div>
+            </section>
+
+            <section class="page-view" id="view-suppliers">
+                <div class="panel p-3 p-lg-4 mb-4">
+                    <h2 class="section-heading mb-3">Supplier details</h2>
+                    <form id="supplierForm" class="row g-3">
+                        <div class="col-12 col-md-3"><label class="form-label" for="supplierName">Business name</label><input class="form-control" id="supplierName" required maxlength="120"></div>
+                        <div class="col-6 col-md-2"><label class="form-label" for="supplierContact">Contact</label><input class="form-control" id="supplierContact" maxlength="120"></div>
+                        <div class="col-6 col-md-2"><label class="form-label" for="supplierPhone">Phone</label><input class="form-control" id="supplierPhone" type="tel" maxlength="40"></div>
+                        <div class="col-12 col-md-2"><label class="form-label" for="supplierEmail">Email</label><input class="form-control" id="supplierEmail" type="email" maxlength="160"></div>
+                        <div class="col-12 col-md-3"><label class="form-label" for="supplierAddress">Address</label><input class="form-control" id="supplierAddress" maxlength="240"></div>
+                        <div class="col-12"><button class="btn btn-primary" type="submit">Save supplier</button><button class="btn btn-link d-none" id="cancelSupplierEdit" type="button">Cancel edit</button></div>
+                    </form>
+                </div>
+                <div class="panel p-3 p-lg-4">
+                    <h2 class="section-heading mb-3">Supplier directory</h2>
+                    <div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Supplier</th><th>Contact</th><th>Phone</th><th>Email</th><th>Address</th><th></th></tr></thead><tbody id="supplierTableBody"></tbody></table></div>
+                </div>
+            </section>
+
+            <section class="page-view" id="view-alerts">
+                <div class="d-flex justify-content-between align-items-center mb-3"><div><h2 class="section-heading">Stock alerts</h2><div class="small subtle mt-1" id="alertThresholds"></div></div><button class="btn btn-sm btn-outline-primary" id="refreshAlerts" type="button">Refresh</button></div>
+                <div class="row g-4">
+                    <div class="col-12 col-xl-4"><div class="panel p-3 h-100"><div class="alert-group"><h3 class="h6 fw-bold mb-1">Expired stock</h3><div class="small subtle mb-3">Remove from sale and review these lots.</div></div><div id="expiredList"></div></div></div>
+                    <div class="col-12 col-xl-4"><div class="panel p-3 h-100"><div class="alert-group warning"><h3 class="h6 fw-bold mb-1">Nearing expiry</h3><div class="small subtle mb-3">Expiry within the configured alert window.</div></div><div id="expiringList"></div></div></div>
+                    <div class="col-12 col-xl-4"><div class="panel p-3 h-100"><div class="alert-group info"><h3 class="h6 fw-bold mb-1">Low stock</h3><div class="small subtle mb-3">At or below the configured reorder threshold.</div></div><div id="lowStockList"></div></div></div>
+                </div>
+            </section>
+        </main>
+
+        <section id="receiptPrint" class="panel p-4 mt-4 d-none" aria-live="polite"></section>
+    </div>
+
+    <script>
+        const statusMessage = document.getElementById('statusMessage');
+        const currency = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
+        const currencyWhole = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+        const state = {
+            medicines: [], suppliers: [], purchases: [], sales: [], alerts: null,
+            dashboard: null, settings: null, me: null, report: null,
+            activityAll: null, showAllActivity: false, salesMetric: 'revenue',
+            editingSupplierId: null
+        };
+        const PAGE_TITLES = {
+            inventory: ['Inventory', 'Medicine lots, expiry dates and stock levels'],
+            purchases: ['Purchases', 'Record stock received from suppliers'],
+            sales: ['Sales & bills', 'Create bills and review past sales'],
+            suppliers: ['Suppliers', 'Your supplier directory'],
+            alerts: ['Alerts', 'Expired, nearing-expiry and low-stock lots'],
+            reports: ['Reports', 'Sales, purchases and stock for any period'],
+            settings: ['Settings', 'Your profile, pharmacy details and alert rules']
+        };
+        let statusTimer = null;
+
+        /* ---------- helpers ---------- */
+        // Local calendar date as YYYY-MM-DD (toISOString would give the UTC date, which is wrong for IST mornings).
+        function localDate(date = new Date()) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
+        function money(value) { return currency.format(Number(value || 0)); }
+        function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
+        function showStatus(message, isError = false) {
+            statusMessage.textContent = message;
+            statusMessage.className = `alert ${isError ? 'alert-danger' : 'alert-success'}`;
+            clearTimeout(statusTimer);
+            statusTimer = setTimeout(() => statusMessage.classList.add('d-none'), isError ? 12000 : 7000);
+        }
+        function setFormSubmitting(form, isSubmitting) {
+            const submitButton = form.querySelector('[type="submit"]');
+            if (submitButton) submitButton.disabled = isSubmitting;
+        }
+        function initialsOf(name) {
+            const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+            if (!words.length) return '';
+            const letters = words.length > 1 ? words[0][0] + words[words.length - 1][0] : words[0].slice(0, 2);
+            return letters.toUpperCase();
+        }
+        function parseDay(isoDate) { const [y, m, d] = String(isoDate).split('-').map(Number); return new Date(y, m - 1, d); }
+        function daysFromToday(isoDate) {
+            const now = new Date();
+            return Math.round((parseDay(isoDate) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+        }
+        function shortDay(isoDate) { return parseDay(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); }
+        function longDay(isoDate) { return parseDay(isoDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
+        function whenLabel(iso) {
+            const d = new Date(iso);
+            if (isNaN(d)) return '—';
+            const now = new Date();
+            const diff = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate())
+                - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+            const dayText = diff === 0 ? 'Today' : diff === 1 ? 'Yesterday'
+                : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            const dateOnly = d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0;
+            return dateOnly ? dayText : `${dayText}, ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+
+        async function api(path, options = {}) {
+            const response = await fetch(path, {
+                ...options,
+                headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...options.headers }
+            });
+            if (response.status === 401) {
+                location.href = '/login.html';
+                throw new Error('Your session has expired. Please sign in again.');
+            }
+            const text = await response.text();
+            let data = null;
+            if (text) {
+                try { data = JSON.parse(text); } catch { data = { message: text }; }
+            }
+            if (!response.ok) {
+                throw new Error(data?.message || `Request failed (HTTP ${response.status}).`);
+            }
+            return data;
+        }
+
+        document.getElementById('purchaseDate').value = localDate();
+
+        /* ---------- inventory ---------- */
+        function medicineStatus(medicine) {
+            const today = localDate();
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() + (state.alerts?.expiryDays ?? 30));
+            const isExpired = medicine.expiryDate < today;
+            return {
+                isExpired,
+                isExpiring: !isExpired && medicine.expiryDate <= localDate(cutoff),
+                isLow: medicine.quantity <= (state.alerts?.lowStockThreshold ?? 10)
+            };
+        }
+
+        function medicineOptions(availableOnly = false) {
+            const today = localDate();
+            return state.medicines
+                .filter(medicine => !availableOnly || (medicine.quantity > 0 && medicine.expiryDate >= today))
+                .map(medicine => `<option value="${medicine.id}">${escapeHtml(medicine.name)} · ${medicine.quantity} on hand · exp ${escapeHtml(medicine.expiryDate)}</option>`)
+                .join('');
+        }
+
+        function renderInventory() {
+            const tbody = document.getElementById('medicineTableBody');
+            tbody.innerHTML = state.medicines.map(medicine => {
+                const { isExpired, isExpiring, isLow } = medicineStatus(medicine);
+                const labels = [];
+                if (isExpired) labels.push('<span class="badge badge-danger-soft me-1">Expired</span>');
+                else if (isExpiring) labels.push('<span class="badge badge-warning-soft me-1">Near expiry</span>');
+                if (isLow) labels.push('<span class="badge badge-warning-soft">Low stock</span>');
+                if (!labels.length) labels.push('<span class="badge badge-soft">In range</span>');
+                return `<tr>
+                    <td class="fw-semibold">${escapeHtml(medicine.name)}</td>
+                    <td>${escapeHtml(medicine.category)}</td>
+                    <td>${medicine.quantity}</td>
+                    <td>${money(medicine.price)}</td>
+                    <td>${escapeHtml(medicine.expiryDate)}</td>
+                    <td>${labels.join(' ')}</td>
+                    <td class="text-end"><button class="btn btn-sm btn-outline-danger" onclick="deleteMedicine(${medicine.id})">Delete</button></td>
+                </tr>`;
+            }).join('') || '<tr><td colspan="7" class="text-center subtle py-4">No medicine lots recorded.</td></tr>';
+            document.getElementById('inventoryCount').textContent = `${state.medicines.length} lots`;
+            document.getElementById('metricLots').textContent = state.medicines.length;
+            document.getElementById('metricValue').textContent = money(state.medicines.reduce((sum, medicine) => sum + medicine.quantity * medicine.price, 0));
+            updateMedicineSelects();
+        }
+
+        function updateMedicineSelects() {
+            const purchaseSelect = document.getElementById('purchaseMedicine');
+            const selected = purchaseSelect.value;
+            purchaseSelect.innerHTML = `<option value="">Choose a medicine lot</option>${medicineOptions()}`;
+            if (state.medicines.some(medicine => String(medicine.id) === selected)) purchaseSelect.value = selected;
+
+            document.querySelectorAll('.sale-medicine').forEach(select => {
+                const current = select.value;
+                select.innerHTML = `<option value="">Choose available lot</option>${medicineOptions(true)}`;
+                if (state.medicines.some(medicine => String(medicine.id) === current && medicine.quantity > 0)) select.value = current;
+            });
+        }
+
+        function renderSuppliers() {
+            const supplierOptions = state.suppliers.map(supplier => `<option value="${supplier.id}">${escapeHtml(supplier.name)}</option>`).join('');
+            const select = document.getElementById('purchaseSupplier');
+            const selected = select.value;
+            select.innerHTML = `<option value="">Choose supplier</option>${supplierOptions}`;
+            if (state.suppliers.some(supplier => String(supplier.id) === selected)) select.value = selected;
+
+            document.getElementById('supplierTableBody').innerHTML = state.suppliers.map(supplier => `<tr>
+                <td class="fw-semibold">${escapeHtml(supplier.name)}</td><td>${escapeHtml(supplier.contactName || '—')}</td>
+                <td>${escapeHtml(supplier.phone || '—')}</td><td>${escapeHtml(supplier.email || '—')}</td>
+                <td>${escapeHtml(supplier.address || '—')}</td>
+                <td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-primary me-1" onclick="editSupplier(${supplier.id})">Edit</button><button class="btn btn-sm btn-outline-danger" onclick="deleteSupplier(${supplier.id})">Delete</button></td>
+            </tr>`).join('') || '<tr><td colspan="6" class="text-center subtle py-4">No suppliers added.</td></tr>';
+        }
+
+        function renderPurchases() {
+            document.getElementById('purchaseTableBody').innerHTML = state.purchases.map(purchase => `<tr>
+                <td>${escapeHtml(purchase.purchaseDate)}</td><td>${escapeHtml(purchase.supplierName)}</td>
+                <td>${escapeHtml(purchase.medicineName)}</td><td>${purchase.quantity}</td>
+                <td>${money(purchase.unitCost)}</td><td class="fw-semibold">${money(purchase.lineTotal)}</td>
+            </tr>`).join('') || '<tr><td colspan="6" class="text-center subtle py-4">No purchases recorded.</td></tr>';
+        }
+
+        function renderSales() {
+            document.getElementById('salesTableBody').innerHTML = state.sales.map(sale => `<tr>
+                <td class="fw-semibold">${escapeHtml(sale.invoiceNumber)}</td><td>${new Date(sale.soldAt).toLocaleString()}</td>
+                <td>${escapeHtml(sale.customerName || 'Walk-in')}</td><td class="fw-semibold">${money(sale.total)}</td>
+                <td class="text-end"><button class="btn btn-sm btn-outline-primary" onclick="showBill(${sale.id})">View bill</button></td>
+            </tr>`).join('') || '<tr><td colspan="5" class="text-center subtle py-4">No sales recorded.</td></tr>';
+        }
+
+        /* ---------- alerts ---------- */
+        function alertRows(medicines, emptyText) {
+            if (!medicines.length) return `<div class="small subtle py-2">${emptyText}</div>`;
+            return `<div class="list-group list-group-flush">${medicines.map(medicine => `<div class="list-group-item px-0 d-flex justify-content-between gap-3">
+                <span><span class="fw-semibold">${escapeHtml(medicine.name)}</span><br><small class="subtle">${escapeHtml(medicine.category)} · Exp ${escapeHtml(medicine.expiryDate)}</small></span>
+                <span class="text-nowrap">${medicine.quantity} units</span>
+            </div>`).join('')}</div>`;
+        }
+
+        function renderAlerts() {
+            const alerts = state.alerts;
+            document.getElementById('metricExpiring').textContent = alerts.expiringSoon.length;
+            document.getElementById('metricLow').textContent = alerts.lowStock.length;
+            document.getElementById('alertThresholds').textContent = `Near expiry: ${alerts.expiryDays} days · Low stock: ${alerts.lowStockThreshold} units or fewer`;
+            document.getElementById('expiredList').innerHTML = alertRows(alerts.expired, 'No expired stock.');
+            document.getElementById('expiringList').innerHTML = alertRows(alerts.expiringSoon, 'No lots nearing expiry.');
+            document.getElementById('lowStockList').innerHTML = alertRows(alerts.lowStock, 'No low-stock items.');
+        }
+
+        // One flat, prioritised list (expired, then nearing expiry, then low stock) shared by the dashboard box and the bell.
+        function alertFeed() {
+            const a = state.alerts;
+            if (!a) return [];
+            const feed = [];
+            a.expired.forEach(m => feed.push({ kind: 'expired', medicine: m, text: `Expired ${longDay(m.expiryDate)}` }));
+            a.expiringSoon.forEach(m => {
+                const days = daysFromToday(m.expiryDate);
+                feed.push({ kind: 'expiring', medicine: m, text: days <= 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'} (${longDay(m.expiryDate)})` });
+            });
+            a.lowStock.forEach(m => feed.push({ kind: 'low', medicine: m, text: m.quantity === 0 ? 'Out of stock' : `Only ${m.quantity} left` }));
+            return feed;
+        }
+        function uniqueAlertLots() {
+            const a = state.alerts;
+            if (!a) return 0;
+            return new Set([...a.expired, ...a.expiringSoon, ...a.lowStock].map(m => m.id)).size;
+        }
+
+        function renderAlertSurfaces() {
+            const a = state.alerts;
+            if (!a) return;
+            const feed = alertFeed();
+
+            // Dashboard "Active Alerts" box
+            const chips = [
+                a.expired.length ? `<span class="badge badge-danger-soft">${a.expired.length} expired</span>` : '',
+                a.expiringSoon.length ? `<span class="badge badge-warning-soft">${a.expiringSoon.length} expiring</span>` : '',
+                a.lowStock.length ? `<span class="badge" style="background:#e3edff;color:#1f55c9;border-radius:20px;padding:6px 9px">${a.lowStock.length} low stock</span>` : ''
+            ].filter(Boolean).join(' ');
+            const shown = feed.slice(0, 4);
+            document.getElementById('dashAlerts').innerHTML = feed.length
+                ? `<div class="d-flex flex-wrap gap-2 mb-2">${chips}</div>${shown.map(item => `<div class="alert-mini"><span><span class="dot dot-${item.kind} me-2"></span><span class="fw-semibold">${escapeHtml(item.medicine.name)}</span><br><small class="subtle ms-3">${escapeHtml(item.text)}</small></span><span class="text-nowrap small">${item.medicine.quantity} units</span></div>`).join('')}${feed.length > shown.length ? `<div class="small subtle pt-2">+ ${feed.length - shown.length} more</div>` : ''}`
+                : '<p class="small subtle mb-2">✓ All clear. Nothing is expired, nearing expiry or low on stock.</p>';
+
+            // Bell + sidebar badge
+            const count = uniqueAlertLots();
+            const bellBadge = document.getElementById('bellBadge');
+            bellBadge.textContent = count > 99 ? '99+' : count;
+            bellBadge.classList.toggle('d-none', count === 0);
+            const sideBadge = document.getElementById('sideAlertBadge');
+            sideBadge.textContent = count > 99 ? '99+' : count;
+            sideBadge.classList.toggle('d-none', count === 0);
+            renderBellMenu(feed);
+        }
+
+        function renderBellMenu(feed) {
+            const menu = document.getElementById('bellMenu');
+            const items = feed.slice(0, 6).map(item => `<div class="bell-item" data-go="alerts"><span class="dot dot-${item.kind}"></span><span><strong>${escapeHtml(item.medicine.name)}</strong><br><small style="color:#6c7fa6">${escapeHtml(item.text)} · ${item.medicine.quantity} units</small></span></div>`).join('');
+            menu.innerHTML = `<div class="bell-head">Notifications${feed.length ? ` <span style="font-weight:500;color:#6c7fa6">· ${uniqueAlertLots()} lot${uniqueAlertLots() === 1 ? '' : 's'}</span>` : ''}</div>`
+                + (items || '<div class="bell-item" style="cursor:default"><span class="dot" style="background:#2fb67c"></span><span>You are all caught up. No expired, expiring or low-stock lots.</span></div>')
+                + (feed.length ? `<div class="bell-foot" data-go="alerts">View all alerts →</div>` : '');
+        }
+
+        /* ---------- profile / greeting / clock ---------- */
+        function renderProfile() {
+            const me = state.me;
+            if (!me) return;
+            const initials = initialsOf(me.displayName);
+            setText('sideAvatar', initials);
+            setText('topAvatar', initials);
+            setText('sideName', me.displayName);
+            setText('topName', me.displayName);
+            setText('sideSub', me.email || me.roleLabel);
+            updateGreeting();
+        }
+
+        function updateGreeting() {
+            const hour = new Date().getHours();
+            const part = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+            setText('greetingTitle', `Good ${part}${state.me ? ', ' + state.me.displayName : ''} 👋`);
+            const now = new Date();
+            const dateText = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            setText('dashboardDate', dateText);
+            setText('todayLabel', new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium' }).format(now));
+        }
+
+        function markUpdated() {
+            const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            setText('dashboardClock', time);
+            setText('lastUpdated', `Updated ${time}`);
+        }
+
+        /* ---------- dashboard ---------- */
+        function renderDashboardTiles() {
+            const alerts = state.alerts;
+            if (!alerts) return;
+            const meds = state.medicines;
+            const units = meds.reduce((sum, m) => sum + Math.max(0, m.quantity), 0);
+            const value = meds.reduce((sum, m) => sum + m.quantity * m.price, 0);
+            const expiredValue = alerts.expired.reduce((sum, m) => sum + m.quantity * m.price, 0);
+            setText('dashLots', meds.length);
+            setText('dashExpiring', alerts.expiringSoon.length);
+            setText('dashLow', alerts.lowStock.length);
+            setText('dashValue', money(value));
+            setText('dashDonutTotal', meds.length);
+            setText('dashLotsSub', `↗ ${units.toLocaleString('en-IN')} units in stock`);
+            setText('dashExpiringSub', alerts.expired.length ? `◷ ${alerts.expired.length} expired · ${alerts.expiryDays}-day window` : `◷ Within ${alerts.expiryDays} days`);
+            setText('dashLowSub', `△ ${alerts.lowStockThreshold} units or fewer`);
+            setText('dashValueSub', expiredValue > 0 ? `₹ Incl. ${money(expiredValue)} expired` : '₹ At retail prices');
+        }
+
+        // Smooth line through the points that never overshoots (so it cannot dip below zero).
+        function monotonePath(pts) {
+            const n = pts.length;
+            if (n < 2) return '';
+            const dx = [], m = [], t = new Array(n).fill(0);
+            for (let i = 0; i < n - 1; i++) { dx[i] = pts[i + 1].x - pts[i].x; m[i] = (pts[i + 1].y - pts[i].y) / dx[i]; }
+            t[0] = m[0]; t[n - 1] = m[n - 2];
+            for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+            for (let i = 0; i < n - 1; i++) {
+                if (m[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; }
+                const a = t[i] / m[i], b = t[i + 1] / m[i], h = Math.hypot(a, b);
+                if (h > 3) { const k = 3 / h; t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+            }
+            const f = v => Math.round(v * 10) / 10;
+            let d = `M${f(pts[0].x)} ${f(pts[0].y)}`;
+            for (let i = 0; i < n - 1; i++) {
+                d += ` C${f(pts[i].x + dx[i] / 3)} ${f(pts[i].y + t[i] * dx[i] / 3)} ${f(pts[i + 1].x - dx[i] / 3)} ${f(pts[i + 1].y - t[i + 1] * dx[i] / 3)} ${f(pts[i + 1].x)} ${f(pts[i + 1].y)}`;
+            }
+            return d;
+        }
+
+        function niceStep(max) {
+            if (max <= 0) return 1;
+            const raw = max / 4, pow = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / pow;
+            return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * pow;
+        }
+
+        function renderSalesChart() {
+            const host = document.getElementById('salesChart');
+            const trend = state.dashboard?.salesTrend || [];
+            if (!trend.length) { host.innerHTML = ''; return; }
+            const metric = state.salesMetric;
+            const values = trend.map(p => metric === 'revenue' ? Number(p.revenue) : metric === 'bills' ? p.bills : p.units);
+            const total = values.reduce((a, b) => a + b, 0);
+            const max = Math.max(...values);
+            const step = max > 0 ? niceStep(max) : (metric === 'revenue' ? 1000 : 1);
+            const top = step * 4;
+            const fmtAxis = v => metric === 'revenue' ? currencyWhole.format(v) : String(v);
+            const fmtTip = (p, v) => metric === 'revenue'
+                ? `${shortDay(p.date)}: ${money(p.revenue)} · ${p.bills} bill${p.bills === 1 ? '' : 's'} · ${p.units} unit${p.units === 1 ? '' : 's'}`
+                : `${shortDay(p.date)}: ${v} ${metric === 'bills' ? 'bill' : 'unit'}${v === 1 ? '' : 's'} · ${money(p.revenue)}`;
+            const X0 = 55, X1 = 500, Y0 = 205, Y1 = 25;
+            const pts = values.map((v, i) => ({ x: X0 + i * (X1 - X0) / (values.length - 1), y: Y0 - (v / top) * (Y0 - Y1) }));
+            const line = monotonePath(pts);
+            const peak = max > 0 ? values.indexOf(max) : -1;
+
+            const hGrid = [0, 1, 2, 3, 4].map(i => `M55 ${Y0 - 45 * i}H500`).join(' ');
+            const vGrid = pts.map(p => `M${Math.round(p.x * 10) / 10} 25V205`).join(' ');
+            const yLabels = [0, 1, 2, 3, 4].map(i => `<text x="48" y="${Y0 - 45 * i + 4}" text-anchor="end">${fmtAxis(step * i)}</text>`).join('');
+            const xLabels = trend.map((p, i) => `<text x="${Math.round(pts[i].x * 10) / 10}" y="226" text-anchor="middle">${shortDay(p.date)}</text>`).join('');
+            const dots = pts.map((p, i) => `<g><title>${escapeHtml(fmtTip(trend[i], values[i]))}</title><circle cx="${p.x}" cy="${p.y}" r="${i === peak ? 5 : 4}"/><circle cx="${p.x}" cy="${p.y}" r="14" fill="transparent" stroke="none"/></g>`).join('');
+            const empty = max === 0 ? `<text class="chart-empty" x="277" y="120" text-anchor="middle">No ${metric === 'revenue' ? 'sales' : metric === 'bills' ? 'bills' : 'units sold'} in the last 7 days</text>` : '';
+
+            host.innerHTML = `<svg viewBox="0 0 520 230" role="img" aria-label="Daily ${metric === 'revenue' ? 'sales' : metric === 'bills' ? 'bills' : 'units sold'} for the last 7 days" style="width:100%;height:auto">
+                <defs><linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#347cff" stop-opacity=".24"/><stop offset="1" stop-color="#347cff" stop-opacity="0"/></linearGradient></defs>
+                <g stroke="#e2ebfa" stroke-width="1"><path d="${hGrid}"/><path d="${vGrid}"/></g>
+                <g fill="#49648f" font-size="11">${yLabels}${xLabels}</g>
+                <path d="${line} L${X1} ${Y0} L${X0} ${Y0}Z" fill="url(#salesFill)"/>
+                <path d="${line}" fill="none" stroke="#347cff" stroke-width="3" stroke-linecap="round"/>
+                <g fill="#347cff" stroke="#fff" stroke-width="2">${dots}</g>${empty}</svg>`;
+            setText('salesRange', `Last 7 days · ${metric === 'revenue' ? money(total) : `${total} ${metric === 'bills' ? 'bill' : 'unit'}${total === 1 ? '' : 's'}`}`);
+        }
+
+        const DONUT_COLORS = ['#347cff', '#54d4b2', '#a78bfa', '#ff804d', '#ffcb4b'];
+        const DONUT_DOTS = ['🔵', '🟢', '🟣', '🟠', '🟡'];
+
+        function renderCategories() {
+            const slices = state.dashboard?.categories || [];
+            const donut = document.getElementById('categoryDonut');
+            const legend = document.getElementById('categoryLegend');
+            if (!slices.length) {
+                donut.style.background = '#e8eefb';
+                legend.innerHTML = '<span class="subtle">No medicine lots yet</span>';
+                return;
+            }
+            let start = 0;
+            const stops = slices.map((slice, i) => {
+                const end = i === slices.length - 1 ? 100 : start + slice.percent;
+                const part = `${DONUT_COLORS[i]} ${start}% ${end}%`;
+                start = end;
+                return part;
+            });
+            donut.style.background = `conic-gradient(${stops.join(',')})`;
+            legend.innerHTML = slices.map((slice, i) => `<span title="${slice.lots} lot${slice.lots === 1 ? '' : 's'} · ${slice.units.toLocaleString('en-IN')} units">${DONUT_DOTS[i]} ${escapeHtml(slice.name)} <strong class="ms-2">${slice.percent}%</strong></span>`).join('');
+        }
+
+        const ACTIVITY_BADGES = {
+            Purchase: 'class="badge rounded-pill text-bg-success"',
+            Sale: 'class="badge rounded-pill text-bg-primary"',
+            Inventory: 'class="badge rounded-pill" style="background:#eee5ff;color:#7040d5"',
+            Supplier: 'class="badge rounded-pill" style="background:#fff1dc;color:#b86500"'
+        };
+
+        function renderActivity() {
+            const rows = state.showAllActivity && state.activityAll ? state.activityAll : (state.dashboard?.recentActivity || []);
+            document.getElementById('activityBody').innerHTML = rows.map(row => `<tr>
+                <td class="text-nowrap">${escapeHtml(whenLabel(row.occurredAt))}</td>
+                <td><span ${ACTIVITY_BADGES[row.type] || 'class="badge rounded-pill" style="background:#e8eefb;color:#3b5190"'}>${escapeHtml(row.type)}</span></td>
+                <td>${escapeHtml(row.details)}${row.amount != null ? ` · <strong>${money(row.amount)}</strong>` : ''}</td>
+                <td>${escapeHtml(row.user || '—')}</td>
+            </tr>`).join('') || '<tr><td colspan="4" class="text-center subtle py-4">No activity yet. Sales, purchases and stock changes will appear here.</td></tr>';
+            const toggle = document.getElementById('activityToggle');
+            toggle.textContent = state.showAllActivity ? 'Show less' : 'View all →';
+            document.getElementById('activityScroll').classList.toggle('activity-scroll', state.showAllActivity);
+        }
+
+        function renderDashboard() {
+            renderDashboardTiles();
+            renderSalesChart();
+            renderCategories();
+            renderActivity();
+            renderAlertSurfaces();
+            updateGreeting();
+        }
+
+        async function loadDashboard() {
+            try {
+                const [medicines, suppliers, purchases, sales, alerts, dashboard, settings, me] = await Promise.all([
+                    api('/api/medicines'), api('/api/suppliers'), api('/api/purchases'), api('/api/sales'), api('/api/alerts'),
+                    api('/api/dashboard'), api('/api/settings'), api('/api/me')
+                ]);
+                Object.assign(state, { medicines, suppliers, purchases, sales, alerts, dashboard, settings, me });
+                if (state.showAllActivity) state.activityAll = await api('/api/activity');
+                renderInventory();
+                renderSuppliers();
+                renderPurchases();
+                renderSales();
+                renderAlerts();
+                renderDashboard();
+                renderProfile();
+                renderSettings();
+                markUpdated();
+            } catch (error) {
+                showStatus(error.message || 'Could not load pharmacy data.', true);
+            }
+        }
+
+        /* ---------- sales & bills ---------- */
+        function addSaleLine() {
+            const row = document.createElement('div');
+            row.className = 'sale-line';
+            row.innerHTML = `<div><label class="form-label">Medicine lot</label><select class="form-select sale-medicine" required><option value="">Choose available lot</option>${medicineOptions(true)}</select></div>
+                <div><label class="form-label">Quantity</label><input class="form-control sale-quantity" type="number" min="1" step="1" value="1" required></div>
+                <button class="btn btn-outline-danger" type="button" aria-label="Remove sale item">Remove</button>`;
+            row.querySelector('button').addEventListener('click', () => {
+                if (document.querySelectorAll('.sale-line').length > 1) row.remove();
+            });
+            document.getElementById('saleLines').append(row);
+        }
+
+        async function showBill(saleId) {
+            try {
+                const sale = await api(`/api/sales/${saleId}`);
+                const shop = state.settings || { pharmacyName: 'MediStock', pharmacyAddress: '', pharmacyPhone: '' };
+                const contact = [shop.pharmacyAddress, shop.pharmacyPhone].filter(Boolean).map(escapeHtml).join(' · ');
+                const receipt = document.getElementById('receiptPrint');
+                receipt.innerHTML = `<div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                    <div><div class="h4 fw-bold mb-1">${escapeHtml(shop.pharmacyName)}</div>${contact ? `<div class="small subtle">${contact}</div>` : ''}<div class="small subtle">Sales invoice</div></div>
+                    <div class="text-end"><div class="fw-bold">${escapeHtml(sale.invoiceNumber)}</div><div class="small subtle">${new Date(sale.soldAt).toLocaleString()}</div></div>
+                </div><div class="mb-3"><span class="subtle">Customer</span><br><strong>${escapeHtml(sale.customerName || 'Walk-in')}</strong></div>
+                <div class="table-responsive"><table class="table"><thead><tr><th>Medicine</th><th>Qty</th><th>Unit price</th><th class="text-end">Amount</th></tr></thead><tbody>${sale.items.map(item => `<tr><td>${escapeHtml(item.medicineName)}</td><td>${item.quantity}</td><td>${money(item.unitPrice)}</td><td class="text-end">${money(item.lineTotal)}</td></tr>`).join('')}</tbody><tfoot><tr><th colspan="3" class="text-end">Total</th><th class="text-end">${money(sale.total)}</th></tr></tfoot></table></div>
+                <div class="no-print d-flex gap-2"><button class="btn btn-primary" type="button" onclick="window.print()">Print bill</button><button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('receiptPrint').classList.add('d-none')">Close</button></div>`;
+                receipt.classList.remove('d-none');
+                receipt.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (error) {
+                showStatus(error.message || 'Could not load this bill.', true);
+            }
+        }
+
+        async function deleteMedicine(medicineId) {
+            const medicine = state.medicines.find(item => item.id === medicineId);
+            if (!medicine) return;
+            if (!confirm(`Delete ${medicine.name} lot with ${medicine.quantity} units? Lots with purchase or sale history cannot be deleted.`)) return;
+            try {
+                await api(`/api/medicines/${medicineId}`, { method: 'DELETE' });
+                await loadDashboard();
+                showStatus('Medicine lot deleted.');
+            } catch (error) {
+                showStatus(error.message || 'Could not delete this medicine lot.', true);
+            }
+        }
+
+        /* ---------- reports ---------- */
+        function presetRange(preset) {
+            const today = new Date();
+            const back = days => { const d = new Date(today); d.setDate(d.getDate() - days); return d; };
+            switch (preset) {
+                case 'today': return [localDate(today), localDate(today)];
+                case '7': return [localDate(back(6)), localDate(today)];
+                case 'month': return [localDate(new Date(today.getFullYear(), today.getMonth(), 1)), localDate(today)];
+                case 'lastmonth': return [localDate(new Date(today.getFullYear(), today.getMonth() - 1, 1)), localDate(new Date(today.getFullYear(), today.getMonth(), 0))];
+                default: return [localDate(back(29)), localDate(today)];
+            }
+        }
+
+        function applyPreset() {
+            const preset = document.getElementById('reportPreset').value;
+            if (preset === 'custom') return;
+            const [from, to] = presetRange(preset);
+            document.getElementById('reportFrom').value = from;
+            document.getElementById('reportTo').value = to;
+        }
+
+        async function loadReport() {
+            const from = document.getElementById('reportFrom').value;
+            const to = document.getElementById('reportTo').value;
+            if (!from || !to) { showStatus('Choose both a start and an end date.', true); return; }
+            if (from > to) { showStatus('The start date must not be after the end date.', true); return; }
+            try {
+                state.report = await api(`/api/reports/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+                renderReport();
+            } catch (error) {
+                showStatus(error.message || 'Could not build the report.', true);
+            }
+        }
+
+        function renderReport() {
+            const r = state.report;
+            if (!r) return;
+            setText('reportRangeLabel', r.from === r.to ? longDay(r.from) : `${longDay(r.from)} to ${longDay(r.to)}`);
+            setText('repRevenue', money(r.revenue));
+            setText('repBills', r.bills.toLocaleString('en-IN'));
+            setText('repUnits', r.units.toLocaleString('en-IN'));
+            setText('repAverage', money(r.averageBill));
+            setText('repSpend', money(r.purchaseSpend));
+            setText('repPurchased', r.purchaseUnits.toLocaleString('en-IN'));
+
+            const empty = cols => `<tr><td colspan="${cols}" class="text-center subtle py-4">Nothing recorded for this period.</td></tr>`;
+            document.getElementById('repDailyBody').innerHTML = [...r.daily].reverse().map(d => `<tr><td>${escapeHtml(longDay(d.date))}</td><td>${d.bills}</td><td>${d.units}</td><td class="text-end fw-semibold">${money(d.revenue)}</td></tr>`).join('') || empty(4);
+            document.getElementById('repTopBody').innerHTML = r.topMedicines.map(t => `<tr><td class="fw-semibold">${escapeHtml(t.name)}</td><td>${t.units}</td><td class="text-end">${money(t.revenue)}</td></tr>`).join('') || empty(3);
+            document.getElementById('repSupplierBody').innerHTML = r.suppliers.map(s => `<tr><td class="fw-semibold">${escapeHtml(s.supplier)}</td><td>${s.orders}</td><td>${s.units}</td><td class="text-end">${money(s.spend)}</td></tr>`).join('') || empty(4);
+            document.getElementById('repCategoryBody').innerHTML = r.inventory.map(c => `<tr><td class="fw-semibold">${escapeHtml(c.name)}</td><td>${c.lots}</td><td>${c.units.toLocaleString('en-IN')}</td><td class="text-end">${money(c.retailValue)}</td></tr>`).join('') || empty(4);
+
+            const h = r.health;
+            const tile = (label, value, note) => `<div class="col-6 col-xl-3"><div class="small subtle">${label}</div><div class="fw-bold" style="font-size:20px">${value}</div>${note ? `<div class="small subtle">${note}</div>` : ''}</div>`;
+            document.getElementById('repHealth').innerHTML =
+                tile('Medicine lots', h.lots.toLocaleString('en-IN'), `${h.units.toLocaleString('en-IN')} units on hand`)
+                + tile('Retail stock value', money(h.retailValue), '')
+                + tile('Expired lots in stock', h.expiredLots, h.expiredLots ? `${money(h.expiredValue)} of stock cannot be sold` : 'None')
+                + tile('Expiring / low stock', `${h.expiringLots} / ${h.lowStockLots}`, 'Lots needing attention');
+        }
+
+        function csvCell(value) {
+            const text = String(value ?? '');
+            return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+        }
+        function downloadCsv(filename, rows) {
+            const blob = new Blob(['\uFEFF' + rows.map(row => row.map(csvCell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.append(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        }
+        function exportDaily() {
+            const r = state.report;
+            if (!r) { showStatus('Run a report first.', true); return; }
+            downloadCsv(`sales-by-day_${r.from}_to_${r.to}.csv`, [['Date', 'Bills', 'Units', 'Revenue (INR)'], ...r.daily.map(d => [d.date, d.bills, d.units, Number(d.revenue).toFixed(2)])]);
+        }
+        function exportInventory() {
+            const rows = state.medicines.map(m => {
+                const s = medicineStatus(m);
+                const status = [s.isExpired ? 'Expired' : s.isExpiring ? 'Near expiry' : '', s.isLow ? 'Low stock' : ''].filter(Boolean).join(' + ') || 'In range';
+                return [m.name, m.category, m.quantity, Number(m.price).toFixed(2), m.expiryDate, status];
+            });
+            downloadCsv(`inventory_${localDate()}.csv`, [['Medicine', 'Category', 'On hand', 'Retail price (INR)', 'Expiry', 'Status'], ...rows]);
+        }
+
+        /* ---------- settings ---------- */
+        function renderSettings() {
+            const me = state.me, s = state.settings;
+            if (me) {
+                document.getElementById('profileFullName').value = me.fullName || '';
+                document.getElementById('profileEmail').value = me.email || '';
+                document.getElementById('profileUsername').value = me.username;
+                document.getElementById('profileRole').value = me.roleLabel;
+            }
+            if (s) {
+                const isAdmin = me?.role === 'ROLE_ADMIN';
+                document.getElementById('setName').value = s.pharmacyName;
+                document.getElementById('setAddress').value = s.pharmacyAddress;
+                document.getElementById('setPhone').value = s.pharmacyPhone;
+                document.getElementById('setExpiryDays').value = s.expiryDays;
+                document.getElementById('setLowStock').value = s.lowStockThreshold;
+                document.querySelectorAll('#settingsForm input').forEach(input => { input.disabled = !isAdmin; });
+                document.getElementById('settingsSave').classList.toggle('d-none', !isAdmin);
+                setText('settingsNote', isAdmin ? 'These apply to bills, alerts, the dashboard and reports.' : 'Only an administrator can change these settings.');
+            }
+        }
+
+        async function loadSystemInfo() {
+            const box = document.getElementById('systemInfo');
+            try {
+                const info = await api('/api/settings/system');
+                const row = (label, value) => `<div class="kv"><span class="subtle">${label}</span><strong>${value}</strong></div>`;
+                box.innerHTML = `<div class="kv"><span class="subtle">Database</span><strong><span class="conn-dot"></span>Connected</strong></div>`
+                    + row('Medicine lots', Number(info.medicines).toLocaleString('en-IN'))
+                    + row('Suppliers', Number(info.suppliers).toLocaleString('en-IN'))
+                    + row('Purchases', Number(info.purchases).toLocaleString('en-IN'))
+                    + row('Sales bills', Number(info.sales).toLocaleString('en-IN'))
+                    + row('Activity records', Number(info.activities).toLocaleString('en-IN'))
+                    + row('Server time', escapeHtml(new Date(info.serverTime).toLocaleString()))
+                    + row('Server time zone', escapeHtml(info.timezone));
+            } catch (error) {
+                box.innerHTML = `<div class="kv"><span class="subtle">Database</span><strong><span class="conn-dot off"></span>Unavailable</strong></div><div class="small subtle">${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        /* ---------- navigation ---------- */
+        function switchView(name) {
+            document.body.classList.toggle('dashboard-mode', name === 'dashboard');
+            document.querySelectorAll('.workflow-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.view === name));
+            document.querySelectorAll('.page-view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
+            document.querySelectorAll('.side-link').forEach(link => link.classList.toggle('active', link.dataset.view === name));
+            document.getElementById('appSidebar').classList.remove('open');
+            closeBell();
+            const titles = PAGE_TITLES[name] || ['Operations', 'Inventory, purchasing and point of sale'];
+            setText('pageTitle', titles[0]);
+            setText('pageSubtitle', titles[1]);
+            if (name === 'reports') loadReport();
+            if (name === 'settings') { renderSettings(); loadSystemInfo(); }
+        }
+
+        function closeBell() {
+            document.getElementById('bellMenu').classList.add('d-none');
+            document.getElementById('bellBtn').setAttribute('aria-expanded', 'false');
+        }
+
+        document.querySelectorAll('.workflow-tab').forEach(tab => tab.addEventListener('click', () => switchView(tab.dataset.view)));
+        document.querySelectorAll('.side-link').forEach(link => link.addEventListener('click', () => switchView(link.dataset.view)));
+        document.getElementById('mobileMenu').addEventListener('click', () => document.getElementById('appSidebar').classList.toggle('open'));
+        document.getElementById('addSaleLine').addEventListener('click', addSaleLine);
+        document.getElementById('refreshAlerts').addEventListener('click', loadDashboard);
+
+        document.getElementById('bellBtn').addEventListener('click', event => {
+            event.stopPropagation();
+            const menu = document.getElementById('bellMenu');
+            const open = menu.classList.contains('d-none');
+            menu.classList.toggle('d-none', !open);
+            event.currentTarget.setAttribute('aria-expanded', String(open));
+        });
+        document.getElementById('bellMenu').addEventListener('click', event => {
+            const target = event.target.closest('[data-go]');
+            if (target) switchView(target.dataset.go);
+        });
+        document.addEventListener('click', event => { if (!document.getElementById('bellWrap').contains(event.target)) closeBell(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape') closeBell(); });
+
+        document.getElementById('salesMetric').addEventListener('change', event => { state.salesMetric = event.target.value; renderSalesChart(); });
+        document.getElementById('activityToggle').addEventListener('click', async () => {
+            try {
+                if (!state.showAllActivity) state.activityAll = await api('/api/activity');
+                state.showAllActivity = !state.showAllActivity;
+                renderActivity();
+            } catch (error) { showStatus(error.message || 'Could not load activity.', true); }
+        });
+
+        document.getElementById('reportPreset').addEventListener('change', () => { applyPreset(); if (document.getElementById('reportPreset').value !== 'custom') loadReport(); });
+        ['reportFrom', 'reportTo'].forEach(id => document.getElementById(id).addEventListener('change', () => { document.getElementById('reportPreset').value = 'custom'; }));
+        document.getElementById('reportRun').addEventListener('click', loadReport);
+        document.getElementById('exportDaily').addEventListener('click', exportDaily);
+        document.getElementById('exportInventory').addEventListener('click', exportInventory);
+        applyPreset();
+
+        /* ---------- forms ---------- */
+        document.getElementById('medicineForm').addEventListener('submit', async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            setFormSubmitting(form, true);
+            try {
+                await api('/api/medicines', { method: 'POST', body: JSON.stringify({
+                    name: document.getElementById('medicineName').value.trim(),
+                    category: document.getElementById('medicineCategory').value.trim(),
+                    quantity: Number(document.getElementById('medicineQuantity').value),
+                    price: Number(document.getElementById('medicinePrice').value),
+                    expiryDate: document.getElementById('medicineExpiry').value
+                }) });
+                form.reset();
+                await loadDashboard();
+                showStatus('Medicine lot added to inventory.');
+            } catch (error) {
+                showStatus(error.message || 'Could not add this medicine lot.', true);
+            } finally {
+                setFormSubmitting(form, false);
+            }
+        });
+
+        document.getElementById('supplierForm').addEventListener('submit', async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            setFormSubmitting(form, true);
+            const supplier = {
+                name: document.getElementById('supplierName').value.trim(),
+                contactName: document.getElementById('supplierContact').value.trim(),
+                phone: document.getElementById('supplierPhone').value.trim(),
+                email: document.getElementById('supplierEmail').value.trim(),
+                address: document.getElementById('supplierAddress').value.trim()
+            };
+            try {
+                const path = state.editingSupplierId ? `/api/suppliers/${state.editingSupplierId}` : '/api/suppliers';
+                const method = state.editingSupplierId ? 'PUT' : 'POST';
+                await api(path, { method, body: JSON.stringify(supplier) });
+                resetSupplierForm();
+                await loadDashboard();
+                showStatus('Supplier saved.');
+            } catch (error) {
+                showStatus(error.message || 'Could not save supplier.', true);
+            } finally {
+                setFormSubmitting(form, false);
+            }
+        });
+
+        document.getElementById('purchaseForm').addEventListener('submit', async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            setFormSubmitting(form, true);
+            try {
+                await api('/api/purchases', { method: 'POST', body: JSON.stringify({
+                    supplierId: Number(document.getElementById('purchaseSupplier').value),
+                    medicineId: Number(document.getElementById('purchaseMedicine').value),
+                    quantity: Number(document.getElementById('purchaseQuantity').value),
+                    unitCost: Number(document.getElementById('purchaseCost').value),
+                    purchaseDate: document.getElementById('purchaseDate').value
+                }) });
+                form.reset();
+                document.getElementById('purchaseDate').value = localDate();
+                await loadDashboard();
+                showStatus('Purchase recorded and stock quantity updated.');
+            } catch (error) {
+                showStatus(error.message || 'Could not record purchase.', true);
+            } finally {
+                setFormSubmitting(form, false);
+            }
+        });
+
+        document.getElementById('saleForm').addEventListener('submit', async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            setFormSubmitting(form, true);
+            const items = [...document.querySelectorAll('.sale-line')].map(row => ({
+                medicineId: Number(row.querySelector('.sale-medicine').value),
+                quantity: Number(row.querySelector('.sale-quantity').value)
+            }));
+            try {
+                const sale = await api('/api/sales', { method: 'POST', body: JSON.stringify({
+                    customerName: document.getElementById('customerName').value.trim(), items
+                }) });
+                form.reset();
+                document.getElementById('saleLines').innerHTML = '';
+                addSaleLine();
+                await loadDashboard();
+                showStatus(`Sale recorded. Invoice ${sale.invoiceNumber} is ready.`);
+                await showBill(sale.id);
+            } catch (error) {
+                showStatus(error.message || 'Could not complete sale.', true);
+            } finally {
+                setFormSubmitting(form, false);
+            }
+        });
+
+        document.getElementById('profileForm').addEventListener('submit', async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            setFormSubmitting(form, true);
+            try {
+                state.me = await api('/api/me', { method: 'PUT', body: JSON.stringify({
+                    fullName: document.getElementById('profileFullName').value.trim(),
+                    email: document.getElementById('profileEmail').value.trim()
+                }) });
+                renderProfile();
+                renderSettings();
+                showStatus('Profile saved.');
+                loadDashboard();
+            } catch (error) {
+                showStatus(error.message || 'Could not save your profile.', true);
+            } finally {
+                setFormSubmitting(form, false);
+            }
+        });
+
+        document.getElementById('passwordForm').addEventListener('submit', async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const next = document.getElementById('newPassword').value;
+            if (next !== document.getElementById('confirmPassword').value) {
+                showStatus('The new password and its confirmation do not match.', true);
+                return;
+            }
+            setFormSubmitting(form, true);
+            try {
+                await api('/api/me/password', { method: 'POST', body: JSON.stringify({
+                    currentPassword: document.getElementById('currentPassword').value, newPassword: next
+                }) });
+                form.reset();
+                showStatus('Password updated. Use it the next time you sign in.');
+            } catch (error) {
+                showStatus(error.message || 'Could not change the password.', true);
+            } finally {
+                setFormSubmitting(form, false);
+            }
+        });
+
+        document.getElementById('settingsForm').addEventListener('submit', async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            setFormSubmitting(form, true);
+            try {
+                state.settings = await api('/api/settings', { method: 'PUT', body: JSON.stringify({
+                    pharmacyName: document.getElementById('setName').value.trim(),
+                    pharmacyAddress: document.getElementById('setAddress').value.trim(),
+                    pharmacyPhone: document.getElementById('setPhone').value.trim(),
+                    expiryDays: Number(document.getElementById('setExpiryDays').value),
+                    lowStockThreshold: Number(document.getElementById('setLowStock').value)
+                }) });
+                await loadDashboard();
+                showStatus('Settings saved. Alerts and the dashboard now use the new values.');
+            } catch (error) {
+                showStatus(error.message || 'Could not save settings.', true);
+            } finally {
+                setFormSubmitting(form, false);
+            }
+        });
+
+        function resetSupplierForm() {
+            document.getElementById('supplierForm').reset();
+            state.editingSupplierId = null;
+            document.querySelector('#supplierForm button[type="submit"]').textContent = 'Save supplier';
+            document.getElementById('cancelSupplierEdit').classList.add('d-none');
+        }
+
+        function editSupplier(supplierId) {
+            const supplier = state.suppliers.find(item => item.id === supplierId);
+            if (!supplier) return;
+            state.editingSupplierId = supplierId;
+            document.getElementById('supplierName').value = supplier.name;
+            document.getElementById('supplierContact').value = supplier.contactName || '';
+            document.getElementById('supplierPhone').value = supplier.phone || '';
+            document.getElementById('supplierEmail').value = supplier.email || '';
+            document.getElementById('supplierAddress').value = supplier.address || '';
+            document.querySelector('#supplierForm button[type="submit"]').textContent = 'Update supplier';
+            document.getElementById('cancelSupplierEdit').classList.remove('d-none');
+            document.getElementById('supplierForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function deleteSupplier(supplierId) {
+            if (!confirm('Delete this supplier? Suppliers with purchase history cannot be deleted.')) return;
+            try {
+                await api(`/api/suppliers/${supplierId}`, { method: 'DELETE' });
+                await loadDashboard();
+                showStatus('Supplier deleted.');
+            } catch (error) { showStatus(error.message || 'Could not delete supplier.', true); }
+        }
+
+        document.getElementById('cancelSupplierEdit').addEventListener('click', resetSupplierForm);
+
+        /* ---------- Global search ---------- */
+        (function () {
+            const input = document.getElementById('globalSearch');
+            const box = document.getElementById('searchResults');
+            let timer = null, seq = 0;
+            const hide = () => box.classList.add('d-none');
+            const group = (title, rows) => rows.length ? `<div style="padding:8px 16px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;color:#6c7fa6">${title}</div>${rows.join('')}` : '';
+            const row = (view, main, sub, right) => `<div class="search-hit" data-view="${view}" style="padding:8px 16px;cursor:pointer;display:flex;justify-content:space-between;gap:12px" onmouseover="this.style.background='#eef4ff'" onmouseout="this.style.background=''"><span><strong>${escapeHtml(main)}</strong><br><small style="color:#6c7fa6">${escapeHtml(sub)}</small></span><span class="text-nowrap small">${escapeHtml(right)}</span></div>`;
+
+            async function findMedicines(q) {
+                try { return await api('/api/medicines/search?q=' + encodeURIComponent(q)); }
+                catch (e) {
+                    const n = q.toLowerCase();
+                    return state.medicines.filter(m => `${m.name} ${m.category}`.toLowerCase().includes(n));
+                }
+            }
+            // Bills: the page only keeps the latest 100, so ask the server too and merge.
+            async function findBills(q) {
+                const n = q.toLowerCase();
+                const local = state.sales.filter(x => [x.invoiceNumber, x.customerName || 'Walk-in'].some(v => (v || '').toLowerCase().includes(n)));
+                let remote = [];
+                try { remote = await api('/api/sales/search?q=' + encodeURIComponent(q)); } catch (e) { remote = []; }
+                const seen = new Set(local.map(x => x.id));
+                return [...local, ...remote.filter(x => !seen.has(x.id))];
+            }
+
+            async function run() {
+                const q = input.value.trim();
+                const mine = ++seq;
+                if (!q) { hide(); return; }
+                const n = q.toLowerCase();
+                const [medicines, sales] = await Promise.all([findMedicines(q), findBills(q)]);
+                if (mine !== seq) return;
+                const suppliers = state.suppliers.filter(x => [x.name, x.contactName, x.phone, x.email, x.address].some(v => (v || '').toLowerCase().includes(n)));
+                const html = group('MEDICINES', medicines.slice(0, 8).map(m => row('inventory', m.name, `${m.category || ''} · Exp ${m.expiryDate}`, `${m.quantity} units`)))
+                    + group('SUPPLIERS', suppliers.slice(0, 5).map(x => row('suppliers', x.name, x.contactName || x.email || '', x.phone || '')))
+                    + group('BILLS', sales.slice(0, 5).map(x => row('sales', x.invoiceNumber, x.customerName || 'Walk-in', money(x.total))));
+                box.innerHTML = html || '<div style="padding:14px 16px;color:#6c7fa6">No matches found.</div>';
+                box.classList.remove('d-none');
+            }
+
+            input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 200); });
+            input.addEventListener('focus', () => { if (input.value.trim()) run(); });
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Escape') { input.blur(); hide(); }
+                if (e.key === 'Enter') { const first = box.querySelector('.search-hit'); if (first) first.click(); }
+            });
+            box.addEventListener('mousedown', e => e.preventDefault());
+            box.addEventListener('click', e => {
+                const hit = e.target.closest('.search-hit');
+                if (!hit) return;
+                switchView(hit.dataset.view);
+                hide();
+            });
+            document.addEventListener('click', e => { if (!document.getElementById('globalSearchBox').contains(e.target)) hide(); });
+            document.addEventListener('keydown', e => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); input.focus(); input.select(); }
+            });
+        })();
+
+        /* ---------- start ---------- */
+        updateGreeting();
+        setInterval(updateGreeting, 30000);                                   // greeting + date follow the real clock
+        setInterval(() => {                                                   // keep numbers fresh without a manual reload
+            const active = document.activeElement;
+            const editing = active && active !== document.body && active.closest && active.closest('form');
+            if (!document.hidden && !editing) loadDashboard();                // never refresh under someone who is typing
+        }, 60000);
+        addSaleLine();
+        loadDashboard();
+
+    </script>
+</body>
+</html>
